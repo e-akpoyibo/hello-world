@@ -1,1 +1,2 @@
 Temporary isolated runner branch for generating the Fifthbound mobile npm package lock. No application source or secrets are present.
+PR verification trigger refreshed after the workflow was placed on the base branch.
