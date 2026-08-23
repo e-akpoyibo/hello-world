@@ -1,0 +1,84 @@
+name: Wave C lock generator
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - package.json
+      - package-lock.json
+      - .github/workflows/wave-c-lock-generator.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate-and-verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout isolated manifest branch
+        uses: actions/checkout@v4
+        with:
+          ref: wave-c-lock-generator-20260823
+          fetch-depth: 0
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.1
+
+      - name: Generate exact npm lock
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      - name: Verify exact Wave C dependency closure
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+          const exact = {
+            '@maplibre/maplibre-react-native': '11.3.7',
+            'expo-location': '56.0.24',
+          };
+          for (const [name, version] of Object.entries(exact)) {
+            if (pkg.dependencies?.[name] !== version) throw new Error(`${name} manifest mismatch`);
+            if (lock.packages?.[`node_modules/${name}`]?.version !== version) {
+              throw new Error(`${name} lock mismatch: ${lock.packages?.[`node_modules/${name}`]?.version ?? 'missing'}`);
+            }
+          }
+          const root = lock.packages?.[''];
+          if (root?.name !== '@nurses-link/mobile' || root?.version !== '0.1.0') {
+            throw new Error('generated lock root metadata does not match mobile manifest');
+          }
+          console.log('PASS: exact Wave C mobile dependency closure generated');
+          NODE
+
+      - name: Clean-install generated lock
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Verify installed direct dependencies
+        run: npm ls @maplibre/maplibre-react-native expo-location --depth=0
+
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Commit generated lock to isolated branch
+        shell: bash
+        run: |
+          if git diff --quiet -- package-lock.json && git ls-files --error-unmatch package-lock.json >/dev/null 2>&1; then
+            echo 'Generated lock already committed and stable.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package-lock.json
+          changed="$(git diff --cached --name-only)"
+          if [ "$changed" != "package-lock.json" ]; then
+            echo "Refusing unexpected generated files: $changed" >&2
+            exit 1
+          fi
+          git commit -m 'build: generate exact Wave C mobile lock'
+          git push origin HEAD:wave-c-lock-generator-20260823
