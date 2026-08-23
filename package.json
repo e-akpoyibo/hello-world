@@ -1,7 +1,23 @@
 {
-  "name": "wave-c-lock-generator",
-  "version": "0.0.0",
+  "name": "@nurses-link/mobile",
+  "version": "0.1.0",
   "private": true,
+  "main": "expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "check": "node scripts/verify-dependency-security.mjs && tsc --noEmit",
+    "expo:config": "expo config --type public",
+    "verify:config": "node scripts/verify-config.mjs",
+    "verify:foundations": "node scripts/verify-foundations.mjs",
+    "verify:live-auth": "node scripts/verify-live-auth.mjs",
+    "verify:workflow-contracts": "node scripts/verify-workflow-contracts.mjs",
+    "verify:android-preflight": "node scripts/verify-android-preflight.mjs",
+    "verify:android-preflight:source": "node scripts/verify-android-preflight.mjs --source-only",
+    "verify:metro-android": "node scripts/verify-metro-android.mjs"
+  },
   "dependencies": {
     "@expo/metro-runtime": "~56.0.20",
     "@maplibre/maplibre-react-native": "11.3.7",
