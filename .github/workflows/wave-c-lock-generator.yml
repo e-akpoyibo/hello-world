@@ -8,13 +8,20 @@ on:
       - package.json
       - package-lock.json
       - .github/workflows/wave-c-lock-generator.yml
+  pull_request:
+    branches:
+      - master
+    paths:
+      - package.json
+      - package-lock.json
+      - .github/workflows/wave-c-lock-generator.yml
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: wave-c-lock-generator
+  group: wave-c-lock-generator-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: false
 
 jobs:
